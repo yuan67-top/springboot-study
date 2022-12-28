@@ -1,0 +1,10 @@
+server.name: kibana-7.6.2
+server.host: 0.0.0.0
+server.port: 5601
+elasticsearch.hosts: ["http://192.168.2.8:9200"]
+xpack.monitoring.ui.container.elasticsearch.enabled: true
+#设置kibana中文显示
+i18n.locale: zh-CN
+
+elasticsearch.username: elastic
+elasticsearch.password: nieqiang@01

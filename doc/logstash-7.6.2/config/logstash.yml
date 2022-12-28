@@ -1,0 +1,19 @@
+http.host: 0.0.0.0
+xpack.monitoring.elasticsearch.hosts: ["http://192.168.2.8:9200"]
+xpack.monitoring.enabled: true
+# xpack.monitoring.elasticsearch.username: logstash_system
+xpack.monitoring.elasticsearch.username: elastic
+xpack.monitoring.elasticsearch.password: nieqiang@01
+
+path.config: /usr/share/logstash/config/*.conf
+path.logs: /usr/share/logstash/logs
+
+# 重新加载配置文件间隔
+config.reload.interval: 60s
+
+# debug模式 开启后会打印解析后的配置文件 包括密码等信息 慎用
+# 需要同时配置日志等级为debug
+config.debug: true
+
+# 验证配置文件及存在性
+config.test_and_exit: false

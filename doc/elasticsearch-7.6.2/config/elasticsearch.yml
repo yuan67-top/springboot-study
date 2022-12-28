@@ -1,0 +1,7 @@
+cluster.name: "docker-cluster-local"
+network.host: 0.0.0.0
+# transport.host: 0.0.0.0
+
+xpack.security.enabled: true
+xpack.license.self_generated.type: basic
+xpack.security.transport.ssl.enabled: true
