@@ -121,6 +121,8 @@ public class ESController {
     return result;
   }
   
+  private Long i = 1L;
+  
   /**
    * 批量写入es
    * @param bookList
@@ -129,7 +131,7 @@ public class ESController {
   @PostMapping("/addBath")
   public HTTPResponse addBath(List<Book> bookList) {
     for (Book m : bookList) {
-      m.setId(UUID.randomUUID().timestamp());
+      m.setId(i++);
       m.setCreaterId(1l);
       m.setIp("127.0.0.1");
     }
@@ -144,7 +146,7 @@ public class ESController {
    */
   @PostMapping("/add")
   public HTTPResponse add(Book book) {
-    book.setId(UUID.randomUUID().timestamp());
+    book.setId(i++);
     book.setCreaterId(1l);
     book.setIp("127.0.0.1");
     Book m = elasticsearchService.save(book);
