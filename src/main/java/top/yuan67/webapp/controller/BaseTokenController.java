@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 import top.yuan67.webapp.constant.AuthorizationConstant;
 import top.yuan67.webapp.entity.BaseAdmin;
 import top.yuan67.webapp.entity.BaseUser;
-import top.yuan67.webapp.service.BaseAdminService;
 import top.yuan67.webapp.util.HTTPResponse;
 import top.yuan67.webapp.util.MessageUtil;
 import top.yuan67.webapp.util.TokenUtil;

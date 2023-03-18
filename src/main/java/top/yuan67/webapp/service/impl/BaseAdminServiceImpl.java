@@ -6,7 +6,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import top.yuan67.webapp.entity.BaseAdmin;
 import top.yuan67.webapp.mapper.BaseAdminMapper;
-import top.yuan67.webapp.service.BaseAdminService;
 
 import javax.annotation.Resource;
 
@@ -17,7 +16,7 @@ import javax.annotation.Resource;
  * @Desc: 描述信息
  **/
 @Service
-public class BaseAdminServiceImpl implements BaseAdminService, UserDetailsService {
+public class BaseAdminServiceImpl implements UserDetailsService {
   
   @Resource
   private BaseAdminMapper adminMapper;
