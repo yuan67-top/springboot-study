@@ -29,11 +29,11 @@ public class MessageUtil {
 	}
   
   
-  public static String get(String msgKey, String var) {
+  public static String get(String msgKey, String... args) {
     try {
-			return messageSource.getMessage(msgKey, new Object[]{var}, LocaleContextHolder.getLocale());
+			return messageSource.getMessage(msgKey, args, LocaleContextHolder.getLocale());
     } catch (Exception e) {
-      log.warn("国际化异常，key未配置:{}", e.getMessage());
+//      log.warn("国际化异常，key未配置:{}", e.getMessage());
       return msgKey;
     }
   }

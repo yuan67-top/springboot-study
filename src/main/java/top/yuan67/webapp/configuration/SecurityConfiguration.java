@@ -11,6 +11,9 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import top.yuan67.webapp.configuration.handler.CustomAccessDeniedHandler;
+import top.yuan67.webapp.configuration.handler.CustomLogoutHandler;
+import top.yuan67.webapp.configuration.handler.CustomLogoutSuccessHandler;
 import top.yuan67.webapp.configuration.handler.UnAuthenticatedRequestHandler;
 import top.yuan67.webapp.service.impl.BaseAdminServiceImpl;
 import top.yuan67.webapp.service.impl.BaseUserServiceImpl;
@@ -63,10 +66,13 @@ public class SecurityConfiguration {
     http.csrf().disable()//关闭csrf
         .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)//关闭session
         .and()
-        .formLogin().disable()
+        .formLogin().disable()//关闭表单登录
+        .logout().addLogoutHandler(new CustomLogoutHandler())
+        .logoutSuccessHandler(new CustomLogoutSuccessHandler())
+        .and()
         .exceptionHandling()
         .authenticationEntryPoint(new UnAuthenticatedRequestHandler())
-        .authenticationEntryPoint(new UnAuthenticatedRequestHandler())
+        .accessDeniedHandler(new CustomAccessDeniedHandler())
         .and()
         .authorizeRequests(auth->
             auth.antMatchers(permitAll).permitAll()

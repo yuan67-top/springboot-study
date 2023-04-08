@@ -43,7 +43,8 @@ public class BaseTokenController {
   private TokenUtil tokenUtil;
   
   /**
-   * 用户名+密码+验证码登录
+   * 管理员
+   * 用户名+密码
    * @param username
    * @param password
    * @return
@@ -63,6 +64,14 @@ public class BaseTokenController {
     }
   }
   
+  
+  /**
+   * 普通用户
+   * 用户名+密码
+   * @param username
+   * @param password
+   * @return
+   */
   @PostMapping("/loginUser")
   public HTTPResponse loginUser(String username, String password) {
     Auth auth = login(username, password);

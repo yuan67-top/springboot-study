@@ -18,18 +18,17 @@ import java.io.PrintWriter;
  * @author CAPTAIN
  */
 public class CustomAccessDeniedHandler implements AccessDeniedHandler {
-  public static final Logger log = LoggerFactory.getLogger(CustomAccessDeniedHandler.class);
+    public static final Logger log = LoggerFactory.getLogger(CustomAccessDeniedHandler.class);
 
-  @Override
-  public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
-    response.setContentType("application/json;charset=UTF-8");
-    response.setStatus(403);//权限不足
-    PrintWriter printWriter = response.getWriter();
-
-    HTTPResponse httpResponse = HTTPResponse.error("AbstractAccessDecisionManager.accessDenied");
-    printWriter.write(new ObjectMapper().writeValueAsString(httpResponse));
-    printWriter.flush();
-    printWriter.close();
-    log.info("访问失败!权限不足{}", accessDeniedException);
-  }
+    @Override
+    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException accessDeniedException) throws IOException, ServletException {
+        response.setContentType("application/json;charset=UTF-8");
+        response.setStatus(403);
+        PrintWriter printWriter = response.getWriter();
+        HTTPResponse httpResponse = HTTPResponse.error("访问失败", "权限不足");
+        printWriter.write(new ObjectMapper().writeValueAsString(httpResponse));
+        printWriter.flush();
+        printWriter.close();
+        log.info("访问失败!{}", accessDeniedException);
+    }
 }
