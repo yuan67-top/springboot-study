@@ -43,7 +43,7 @@ public class TokenUtil {
   }
   
   /**
-   * 生成token
+   * 为管理员生成token
    * @param admin
    * @return
    */
@@ -82,6 +82,11 @@ public class TokenUtil {
     return result;
   }
   
+  /**
+   * 为普通用户生产token
+   * @param user
+   * @return
+   */
   public Map<String, Object> generatorAccessToken(BaseUser user) {
     user.setPassword(null);
     
@@ -113,13 +118,13 @@ public class TokenUtil {
     loginAdmin.put("createTime", user.getCreate_time());
     
     Map<String, Object> result = new LinkedHashMap<>();
-    result.put(AuthorizationConstant.ADMIN, loginAdmin);
+    result.put(AuthorizationConstant.USER, loginAdmin);
     result.put("token", token);
     return result;
   }
   
   /**
-   * 生成刷新token
+   * 为管理员生成刷新token
    * @param admin
    * @return
    */
@@ -148,6 +153,12 @@ public class TokenUtil {
   
     return token;
   }
+  
+  /**
+   * 为普通用户生产刷新token
+   * @param user
+   * @return
+   */
   public String generatorRefreshToken(BaseUser user) {
     user.setPassword(null);
     
@@ -174,15 +185,4 @@ public class TokenUtil {
     return token;
   }
   
-  /**
-   * 根据请求获取token，然后返回用户Id
-   * @return
-   */
-  public long parseTokenToAdminFindId(){
-    HttpServletRequest request = HttpContextUtil.getHttpServletRequest();
-    String token = request.getHeader(AuthorizationConstant.ACCESS_TOKEN);
-    String payloads = JWTUtil.parseToken(token).getPayloads().toString();
-    JSONObject json = JSONObject.parseObject(payloads);
-    return Long.valueOf(json.get(AuthorizationConstant.ID).toString());
-  }
 }
