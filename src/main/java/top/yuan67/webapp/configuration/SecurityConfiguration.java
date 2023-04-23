@@ -3,8 +3,7 @@ package top.yuan67.webapp.configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -15,10 +14,6 @@ import top.yuan67.webapp.configuration.handler.CustomAccessDeniedHandler;
 import top.yuan67.webapp.configuration.handler.CustomLogoutHandler;
 import top.yuan67.webapp.configuration.handler.CustomLogoutSuccessHandler;
 import top.yuan67.webapp.configuration.handler.UnAuthenticatedRequestHandler;
-import top.yuan67.webapp.service.impl.BaseAdminServiceImpl;
-import top.yuan67.webapp.service.impl.BaseUserServiceImpl;
-
-import javax.annotation.Resource;
 
 /**
  * @Author: NieQiang
@@ -31,24 +26,9 @@ import javax.annotation.Resource;
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfiguration {
   
-  @Resource
-  private BaseAdminServiceImpl adminService;
-  
-  @Resource
-  private BaseUserServiceImpl userService;
-  
   @Bean
-  protected AuthenticationManager authenticationManager(){
-    DaoAuthenticationProvider userProvider = new DaoAuthenticationProvider();
-    userProvider.setUserDetailsService(userService);
-    userProvider.setPasswordEncoder(encoder());//设置密码加密方式
-  
-    DaoAuthenticationProvider adminProvider = new DaoAuthenticationProvider();
-    adminProvider.setUserDetailsService(adminService);
-    adminProvider.setPasswordEncoder(encoder());//设置密码加密方式
-
-    ProviderManager manager = new ProviderManager(userProvider, adminProvider);
-    return manager;
+  public AuthenticationManager manager(AuthenticationConfiguration authenticationConfiguration) throws Exception {
+    return authenticationConfiguration.getAuthenticationManager();
   }
   
   @Bean

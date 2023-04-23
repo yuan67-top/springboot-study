@@ -6,6 +6,12 @@
  **/
 package top.yuan67.webapp.util;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+
 public class HTTPResponse {
 	private Integer status;
 	private String message;
@@ -104,7 +110,27 @@ public class HTTPResponse {
   public static HTTPResponse error(Integer status, String message, Object data) {
     return new HTTPResponse(status, MessageUtil.get(message), data);
   }
-	
+  
+  public static void error(HttpServletResponse response, Integer code, String message) throws IOException {
+    response.setContentType("application/json;charset=UTF-8");
+    response.setStatus(code);
+    PrintWriter printWriter = response.getWriter();
+    HTTPResponse httpResponse = HTTPResponse.error(message);
+    printWriter.write(new ObjectMapper().writeValueAsString(httpResponse));
+    printWriter.flush();
+    printWriter.close();
+  }
+  
+  public static void ok(HttpServletResponse response, String message) throws IOException {
+    response.setContentType("application/json;charset=UTF-8");
+    response.setStatus(200);
+    PrintWriter printWriter = response.getWriter();
+    HTTPResponse httpResponse = HTTPResponse.error(message);
+    printWriter.write(new ObjectMapper().writeValueAsString(httpResponse));
+    printWriter.flush();
+    printWriter.close();
+  }
+  
 	protected HTTPResponse() {super();}
 	private HTTPResponse(Integer status, String message) {
 		this.status = status;

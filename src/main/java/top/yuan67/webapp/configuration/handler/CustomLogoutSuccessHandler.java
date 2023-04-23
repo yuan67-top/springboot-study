@@ -10,6 +10,7 @@ import org.springframework.security.web.authentication.logout.LogoutSuccessHandl
 import top.yuan67.webapp.constant.AuthorizationConstant;
 import top.yuan67.webapp.util.ApplicationContextHandler;
 import top.yuan67.webapp.util.HTTPResponse;
+import top.yuan67.webapp.util.TokenUtil;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -23,30 +24,16 @@ import java.io.PrintWriter;
 public class CustomLogoutSuccessHandler implements LogoutSuccessHandler {
   public static final Logger log = LoggerFactory.getLogger(CustomLogoutSuccessHandler.class);
   
+  TokenUtil tokenUtil = ApplicationContextHandler.getBean(TokenUtil.class);
+  
   @Override
   public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response,
-        Authentication authentication) throws IOException {
-    response.setContentType("application/json;charset=UTF-8");
-    RedisTemplate redisTemplate = (RedisTemplate) ApplicationContextHandler.getBean("redisTemplate");
-    PrintWriter printWriter = response.getWriter();
-    String accessToken = request.getHeader(AuthorizationConstant.ACCESS_TOKEN);
-  
-    String id = JWTUtil.parseToken(accessToken).getPayload(AuthorizationConstant.ID).toString();
-    String accessTokenKey =
-        new StringBuffer(AuthorizationConstant.AUTHORIZATION_Admin_ACCESS_TOKEN).append(id).toString();
-    String refreshTokenKey =
-        new StringBuffer(AuthorizationConstant.AUTHORIZATION_Admin_REFRESH_TOKEN).append(id).toString();
-    
-    String menuId = new StringBuffer(AuthorizationConstant.MENU).append(id).toString();
-    
-    redisTemplate.delete(accessTokenKey);
-    redisTemplate.delete(refreshTokenKey);
-    redisTemplate.delete(menuId);
-    HTTPResponse httpResponse = HTTPResponse.ok("账号安全退出", authentication);
-    
-    printWriter.write(new ObjectMapper().writeValueAsString(httpResponse));
-    printWriter.flush();
-    printWriter.close();
-    log.info("用户退出成功!:{}", authentication);
+                              Authentication authentication) throws IOException {
+    String accessToken = request.getHeader(AuthorizationConstant.TOKEN);
+    if (accessToken != null){
+      tokenUtil.logout();
+      log.info("用户退出成功!:{}", authentication);
+      HTTPResponse.ok(response, "账号安全退出");
+    }
   }
 }

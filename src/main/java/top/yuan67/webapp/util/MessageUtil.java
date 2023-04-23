@@ -29,7 +29,7 @@ public class MessageUtil {
 	}
   
   
-  public static String get(String msgKey, String... args) {
+  public static String get(String msgKey, Object... args) {
     try {
 			return messageSource.getMessage(msgKey, args, LocaleContextHolder.getLocale());
     } catch (Exception e) {

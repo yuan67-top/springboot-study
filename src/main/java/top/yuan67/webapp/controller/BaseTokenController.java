@@ -3,23 +3,30 @@ package top.yuan67.webapp.controller;
 import cn.hutool.jwt.JWT;
 import cn.hutool.jwt.JWTUtil;
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import io.netty.util.internal.StringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 import top.yuan67.webapp.constant.AuthorizationConstant;
 import top.yuan67.webapp.entity.BaseAdmin;
 import top.yuan67.webapp.entity.BaseUser;
+import top.yuan67.webapp.exception.AccessTokenException;
+import top.yuan67.webapp.service.BaseAdminService;
+import top.yuan67.webapp.service.BaseUserService;
 import top.yuan67.webapp.util.HTTPResponse;
 import top.yuan67.webapp.util.MessageUtil;
 import top.yuan67.webapp.util.TokenUtil;
+import top.yuan67.webapp.vo.LoginAdminVO;
 
 import javax.annotation.Resource;
 import java.util.LinkedHashMap;
@@ -37,98 +44,88 @@ public class BaseTokenController {
   private RedisTemplate redisTemplate;
   
   @Resource
-  private AuthenticationManager authenticationManager;
+  private TokenUtil tokenUtil;
   
   @Resource
-  private TokenUtil tokenUtil;
+  private BaseAdminService adminService;
+  
+  @Resource
+  private BaseUserService userService;
+  
+  @Resource
+  private BCryptPasswordEncoder encoder;
   
   /**
    * 管理员
    * 用户名+密码
-   * @param username
-   * @param password
+   *
+   * @param login
    * @return
    */
   @PostMapping("/loginAdmin")
-  public HTTPResponse loginAdmin(String username, String password) {
-    Auth auth = login(username, password);
-    if(auth.getAuthentication() == null){
-      return HTTPResponse.error(auth.getEx());
+  public HTTPResponse loginAdmin(@RequestBody LoginAdminVO login){
+    log.info("用户登录：{}", login);
+    
+    Authentication authentication;
+    try {
+      DaoAuthenticationProvider adminProvider = new DaoAuthenticationProvider();
+      adminProvider.setUserDetailsService(adminService);
+      adminProvider.setPasswordEncoder(encoder);//设置密码加密方式
+      ProviderManager manager = new ProviderManager(adminProvider);
+      UsernamePasswordAuthenticationToken token =
+          new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword());
+      
+      authentication = manager.authenticate(token);
+    } catch (Exception e) {
+      return exception(login, e);
     }
-    try{
-      BaseAdmin admin = (BaseAdmin) auth.getAuthentication().getPrincipal();
-      return HTTPResponse.ok("操作成功", tokenUtil.login(admin));
-    }catch (Exception e){
-      log.error(e.getMessage());
-      return HTTPResponse.error("登录失败");
-    }
+    SecurityContextHolder.getContext()
+        .setAuthentication(UsernamePasswordAuthenticationToken
+            .authenticated(authentication.getPrincipal(), null, authentication.getAuthorities()));
+  
+    return HTTPResponse.ok("登录成功", tokenUtil.login((BaseAdmin) authentication.getPrincipal()));
   }
   
   
   /**
    * 普通用户
    * 用户名+密码
-   * @param username
-   * @param password
+   * @param login
    * @return
    */
   @PostMapping("/loginUser")
-  public HTTPResponse loginUser(String username, String password) {
-    Auth auth = login(username, password);
-    if(auth.getAuthentication() == null){
-      return HTTPResponse.error(auth.getEx());
-    }
-    try{
-      BaseUser user = (BaseUser) auth.getAuthentication().getPrincipal();
-      return HTTPResponse.ok("操作成功", tokenUtil.login(user));
-    }catch (Exception e){
-      log.error(e.getMessage());
-      return HTTPResponse.error("登录失败");
-    }
-  }
+  public HTTPResponse loginUser(@RequestBody LoginAdminVO login) throws AccessTokenException {
   
-  private Auth login(String username, String password){
-    
-    UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken =
-        new UsernamePasswordAuthenticationToken(username, password);
-    Auth auth = new Auth();
     Authentication authentication;
     try{
-      authentication = authenticationManager.authenticate(usernamePasswordAuthenticationToken);
-    }catch (Exception e){
-      log.error(e.getMessage());
-      auth.setAuthentication(null);
-      auth.setEx(e.getMessage());
-      return auth;
-    }
     
+      DaoAuthenticationProvider userProvider = new DaoAuthenticationProvider();
+      userProvider.setUserDetailsService(userService);
+      userProvider.setPasswordEncoder(encoder);//设置密码加密方式
+      ProviderManager manager = new ProviderManager(userProvider);
+    
+      UsernamePasswordAuthenticationToken token =
+          new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword());
+    
+      authentication = manager.authenticate(token);
+    
+    }catch (Exception e){
+      return exception(login, e);
+    }
+  
     SecurityContextHolder.getContext()
         .setAuthentication(UsernamePasswordAuthenticationToken
-            .authenticated(authentication.getPrincipal(), null, null));
-    auth.setAuthentication(authentication);
-    auth.setEx(null);
-    return auth;
+            .authenticated(authentication.getPrincipal(), null, authentication.getAuthorities()));
+  
+    return HTTPResponse.ok("登录成功", tokenUtil.login((BaseUser)authentication.getPrincipal()));
   }
   
-  class Auth{
-    private Authentication authentication;
-    private String ex;
   
-    public Authentication getAuthentication() {
-      return authentication;
-    }
-  
-    public void setAuthentication(Authentication authentication) {
-      this.authentication = authentication;
-    }
-  
-    public String getEx() {
-      return ex;
-    }
-  
-    public void setEx(String ex) {
-      this.ex = ex;
-    }
+  @GetMapping("/findCurrentUserInfo")
+  public Map<String, Object> findCurrentUserInfo(){
+    String token = redisTemplate.opsForHash()
+        .get(tokenUtil.accessTokenKey(), AuthorizationConstant.USER_INFO).toString();
+    return JSONObject.parseObject(token, Map.class);
   }
   
   /**
@@ -137,12 +134,20 @@ public class BaseTokenController {
    * @param refreshToken
    * @return
    */
-  @PostMapping("/refreshToken")
-  public Map<String, Object> refreshToken(String refreshToken) {
-    log.info("refreshToken:{}", refreshToken);
+  @PostMapping("/refreshToken/admin")
+  public Map<String, Object> refreshTokenAdmin(String refreshToken) {
+    return refreshToken(refreshToken, "admin");
+  }
+  @PostMapping("/refreshToken/user")
+  public Map<String, Object> refreshTokenUser(String refreshToken) {
+    return refreshToken(refreshToken, "user");
+  }
   
+  private Map<String, Object> refreshToken(String refreshToken, String type){
+    log.info("refreshToken:{}", refreshToken);
+    
     Map<String, Object> map = new LinkedHashMap<>();
-    if (StringUtil.isNullOrEmpty(refreshToken)) {//如果请求头中有token
+    if (tokenUtil.isNotEmpty(refreshToken)) {//如果请求头中有token
       boolean verify;
       try {
         //令牌校验
@@ -156,11 +161,15 @@ public class BaseTokenController {
       if (verify) {//校验token是否正确,是否本机生成的token
         try {
           JWT jwt = JWTUtil.parseToken(refreshToken);
-          String id = jwt.getPayload(AuthorizationConstant.ID).toString();//账号ID
-          String key =
-              new StringBuffer(AuthorizationConstant.AUTHORIZATION_Admin_REFRESH_TOKEN).append(id).toString();
+          String key = tokenUtil.refreshTokenKey(refreshToken);
+          boolean b = redisTemplate.hasKey(key);
+          if(!b){
+            map.put("status", 500);
+            map.put("message", MessageUtil.get("刷新令牌过期"));
+            return map;
+          }
           String header = jwt.getHeader(AuthorizationConstant.HEADER).toString();
-          if (!header.equalsIgnoreCase(AuthorizationConstant.REFRESH_TOKEN)) {
+          if (!header.equalsIgnoreCase(AuthorizationConstant.HEADER_REFRESH_TOKEN)) {
             map.put("status", 500);
             map.put("message", MessageUtil.get("令牌解析异常"));
             return map;
@@ -170,12 +179,12 @@ public class BaseTokenController {
            * 这里在token是可正常解析的基础上用前端传进来的token解析得到用户ID,然后去redis获取token是为了就算是前端保存的token是过期的
            * 只要传进来可以正常解析,就可以正常访问本地系统的接口,服务端刷新token,刷新后的不用返回给前端
            */
-          String redisRefreshToken = redisTemplate.opsForHash().get(key, AuthorizationConstant.REFRESH_TOKEN).toString();//redis中的token
-          String redisAdmin = redisTemplate.opsForHash().get(key, AuthorizationConstant.ADMIN).toString();//redis中的用户信息
+          String redisRefreshToken = redisTemplate.opsForHash().get(key, AuthorizationConstant.TOKEN).toString();//redis中的token
+          String redisAdmin =
+              redisTemplate.opsForHash().get(key, AuthorizationConstant.USER_INFO).toString();//redis中的用户信息
           
           //ACCESS_TOKEN过期时间
-          long exp = Long.valueOf(JWTUtil.parseToken(redisRefreshToken).getPayload("exp").toString());
-          
+          long exp = redisTemplate.getExpire(key);
           //当前时间
           long now = System.currentTimeMillis() / 1000;
           log.info("key:{}, exp:{}, now:{}, cha:{}", key, exp, now, exp - now);
@@ -192,8 +201,14 @@ public class BaseTokenController {
           }
           
           log.info("刷新令牌还未过期,但距离过期还有{}分钟,所以刷新token", (exp - now) / 60);
-          BaseAdmin admin = JSON.parseObject(redisAdmin, BaseAdmin.class);
-          return tokenUtil.login(admin);
+          if(type.equalsIgnoreCase("user")){
+            BaseUser user = JSON.parseObject(redisAdmin, BaseUser.class);
+            return tokenUtil.login(user);
+          }
+          if(type.equalsIgnoreCase("admin")){
+            BaseAdmin admin = JSON.parseObject(redisAdmin, BaseAdmin.class);
+            return tokenUtil.login(admin);
+          }
         } catch (Exception e) {
           log.warn("用户身份过期！:{}", e);
           map.put("status", 500);
@@ -210,5 +225,15 @@ public class BaseTokenController {
     map.put("status", 500);
     map.put("message", MessageUtil.get("关键参数不能为空"));
     return map;
+  }
+  
+  private HTTPResponse exception(LoginAdminVO login, Exception e) {
+    
+    if (e instanceof BadCredentialsException) {
+      log.error("e====={}", e);
+      log.info("用户名或密码错误：username:{}, password:{}", login.getUsername(), login.getPassword());
+      return HTTPResponse.error("用户名或密码错误");
+    }
+    return HTTPResponse.error(e.getMessage());
   }
 }

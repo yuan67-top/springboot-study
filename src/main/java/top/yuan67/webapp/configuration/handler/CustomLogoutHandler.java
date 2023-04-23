@@ -14,6 +14,6 @@ public class CustomLogoutHandler implements LogoutHandler {
     @Override
     public void logout(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
         log.info("CustomLogoutHandler======{}", authentication);
-        log.info("request======{}", request.getHeader(AuthorizationConstant.ACCESS_TOKEN));
+        log.info("request======{}", request.getHeader(AuthorizationConstant.HEADER_ACCESS_TOKEN));
     }
 }
